@@ -1,0 +1,18 @@
+
+apiVersion: prcontroller.ephemreal.io.prcontroller.ephemreal.io/v1alpha1
+kind: PRController
+metadata:
+  name: prcontroller-sample
+spec:
+  user: manisbindra
+  repo: ephemeral-app
+  tokenSecretRef: 
+    name: tokensecret
+    namespace: default
+    key: token
+  interval: "60s"
+  manifestRepo:
+    repoName: infra-repo-public
+    manifestFolderPath: ephemeral-env
+    chartVersion: 0.1.0
+    destinationNamespace: pr-helm-releases
