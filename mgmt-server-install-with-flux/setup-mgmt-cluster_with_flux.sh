@@ -70,7 +70,7 @@ flux bootstrap git \
 flux create source git infra-repo-public \
 --url ${GITHUB_INFRA_REPOSITORY} \
 --branch "main" \
---username=manisbindra --password=${GITHUB_TOKEN}
+--username=${GITHUB_USER} --password=${GITHUB_TOKEN}
 
 # Install controller along with namespace, CRD, service account, role, and role binding 
 kubectl apply -f install-controller.yaml
@@ -82,10 +82,10 @@ kubectl create ns pr-helm-releases
 kubectl create secret generic tokensecret -n default --from-literal=token=$GITHUB_TOKEN
 
 # Setup Github secret for flux repository
-kubectl create secret generic ghtoken -n flux-system --from-literal=username=manisbindra --from-literal=password=$GITHUB_TOKEN
+kubectl create secret generic ghtoken -n flux-system --from-literal=username=${GITHUB_USER} --from-literal=password=$GITHUB_TOKEN
 
 # Create Image pull secret to pull container image
-kubectl create secret docker-registry ghcrpullscr -n kubebuilder-system --docker-server="ghcr.io" --docker-username=$HELM_OCI_REGISTRY_USER --docker-password=$HELM_OCI_REGISTRY_PASSWORD --docker-email=mani@test.com
+kubectl create secret docker-registry ghcrpullscr -n pr-ephemeral-env-controller-system --docker-server="ghcr.io" --docker-username=$HELM_OCI_REGISTRY_USER --docker-password=$HELM_OCI_REGISTRY_PASSWORD --docker-email=mani@test.com
 
 # Create CRD to observe APP repository PRs
 kubectl apply -f ephemeral-prcontroller-CR.yaml

@@ -3,7 +3,7 @@ kind: Namespace
 metadata:
   labels:
     control-plane: controller-manager
-  name: kubebuilder-system
+  name: pr-ephemeral-env-controller-system
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -11,14 +11,14 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.9.2
   creationTimestamp: null
-  name: prcontrollers.prcontroller.ephemreal.io.prcontroller.ephemreal.io
+  name: prephemeralenvcontrollers.prcontroller.controllers.ephemeralenv.io
 spec:
-  group: prcontroller.ephemreal.io.prcontroller.ephemreal.io
+  group: prcontroller.controllers.ephemeralenv.io
   names:
-    kind: PRController
-    listKind: PRControllerList
-    plural: prcontrollers
-    singular: prcontroller
+    kind: PREphemeralEnvController
+    listKind: PREphemeralEnvControllerList
+    plural: prephemeralenvcontrollers
+    singular: prephemeralenvcontroller
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
@@ -29,7 +29,8 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: PRController is the Schema for the prcontrollers API
+        description: PREphemeralEnvController is the Schema for the prephemeralenvcontrollers
+          API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -44,12 +45,10 @@ spec:
           metadata:
             type: object
           spec:
-            description: PRControllerSpec defines the desired state of PRController
+            description: PREphemeralEnvControllerSpec defines the desired state of
+              PREphemeralEnvController
             properties:
-              interval:
-                description: Interval at which to check the GitRepository for PR updates.
-                type: string
-              manifestRepo:
+              envCreationHelmRepo:
                 description: Helm Repository for Infrastructure manifests
                 properties:
                   chartVersion:
@@ -61,48 +60,67 @@ spec:
                     description: The Kubernetes Namespace where the manifests will
                       be deployed
                     type: string
-                  manifestFolderPath:
+                  fluxSourceRepoName:
+                    description: Name of the Flux Source Repository containing the
+                      Helm Chart
+                    type: string
+                  helmChartPath:
                     description: The folder name in the Helm Repository containing
                       the manifest templates
-                    type: string
-                  repoName:
-                    description: Name of the Helm Repository containing the manifest
-                      templates
                     type: string
                 required:
                 - chartVersion
                 - destinationNamespace
-                - manifestFolderPath
-                - repoName
+                - fluxSourceRepoName
+                - helmChartPath
                 type: object
-              repo:
-                description: Repo specifies the name of the githuh repository.
+              envHealthCheckURLTemplate:
+                description: Ephemeral Environment Health Check URL Template to be
+                  used to check the health of the ephemeral environment. If specified,
+                  the controller will check the health of the ephemeral environment
+                  and Update the Github PR status when environment is ready. <<PR_NUMBER>>
+                  will be replaced with the PR number <<PR_HEAD_SHA>> will be replaced
+                  with the PR head SHA
                 type: string
-              tokenSecretRef:
-                description: SecretRef specifies the Token Secret containing authentication
-                  credentials for the Github Repository.
+              githubPRRepository:
+                description: The Github Repository, PRs against which will trigger
+                  the creation of the ephemeral environment
                 properties:
-                  key:
+                  repo:
+                    description: Repo specifies the name of the githuh repository.
                     type: string
-                  name:
-                    description: Name of the referent.
-                    type: string
-                  namespace:
+                  tokenSecretRef:
+                    description: SecretRef specifies the Token Secret containing authentication
+                      credentials for the Github Repository.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        description: Name of the referent.
+                        type: string
+                      namespace:
+                        type: string
+                    required:
+                    - key
+                    - name
+                    - namespace
+                    type: object
+                  user:
+                    description: User is the GitHub user name
                     type: string
                 required:
-                - key
-                - name
-                - namespace
+                - user
                 type: object
-              user:
-                description: User is the GitHub user name
+              interval:
+                default: 60s
+                description: Interval at which to check the GitRepository for PR updates.
                 type: string
             required:
             - interval
-            - user
             type: object
           status:
-            description: PRControllerStatus defines the observed state of PRController
+            description: PREphemeralEnvControllerStatus defines the observed state
+              of PREphemeralEnvController
             properties:
               conditions:
                 description: Conditions holds the conditions for the GitRepository.
@@ -185,14 +203,14 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: kubebuilder-controller-manager
-  namespace: kubebuilder-system
+  name: pr-ephemeral-env-controller-controller-manager
+  namespace: pr-ephemeral-env-controller-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: kubebuilder-leader-election-role
-  namespace: kubebuilder-system
+  name: pr-ephemeral-env-controller-leader-election-role
+  namespace: pr-ephemeral-env-controller-system
 rules:
 - apiGroups:
   - ""
@@ -230,16 +248,23 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   creationTimestamp: null
-  name: kubebuilder-manager-role
+  name: pr-ephemeral-env-controller-manager-role
 rules:
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
 - apiGroups:
   - ""
   resources:
   - secrets
   verbs:
   - get
-  - watch
   - list
+  - watch
 - apiGroups:
   - helm.crossplane.io
   resources:
@@ -265,9 +290,9 @@ rules:
   - update
   - watch
 - apiGroups:
-  - prcontroller.ephemreal.io.prcontroller.ephemreal.io
+  - prcontroller.controllers.ephemeralenv.io
   resources:
-  - prcontrollers
+  - prephemeralenvcontrollers
   verbs:
   - create
   - delete
@@ -277,15 +302,15 @@ rules:
   - update
   - watch
 - apiGroups:
-  - prcontroller.ephemreal.io.prcontroller.ephemreal.io
+  - prcontroller.controllers.ephemeralenv.io
   resources:
-  - prcontrollers/finalizers
+  - prephemeralenvcontrollers/finalizers
   verbs:
   - update
 - apiGroups:
-  - prcontroller.ephemreal.io.prcontroller.ephemreal.io
+  - prcontroller.controllers.ephemeralenv.io
   resources:
-  - prcontrollers/status
+  - prephemeralenvcontrollers/status
   verbs:
   - get
   - patch
@@ -294,7 +319,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: kubebuilder-metrics-reader
+  name: pr-ephemeral-env-controller-metrics-reader
 rules:
 - nonResourceURLs:
   - /metrics
@@ -304,7 +329,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: kubebuilder-proxy-role
+  name: pr-ephemeral-env-controller-proxy-role
 rules:
 - apiGroups:
   - authentication.k8s.io
@@ -322,56 +347,42 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: kubebuilder-leader-election-rolebinding
-  namespace: kubebuilder-system
+  name: pr-ephemeral-env-controller-leader-election-rolebinding
+  namespace: pr-ephemeral-env-controller-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: kubebuilder-leader-election-role
+  name: pr-ephemeral-env-controller-leader-election-role
 subjects:
 - kind: ServiceAccount
-  name: kubebuilder-controller-manager
-  namespace: kubebuilder-system
+  name: pr-ephemeral-env-controller-controller-manager
+  namespace: pr-ephemeral-env-controller-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: kubebuilder-manager-rolebinding
+  name: pr-ephemeral-env-controller-manager-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: kubebuilder-manager-role
+  name: pr-ephemeral-env-controller-manager-role
 subjects:
 - kind: ServiceAccount
-  name: kubebuilder-controller-manager
-  namespace: kubebuilder-system
+  name: pr-ephemeral-env-controller-controller-manager
+  namespace: pr-ephemeral-env-controller-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: kubebuilder-proxy-rolebinding
+  name: pr-ephemeral-env-controller-proxy-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: kubebuilder-proxy-role
+  name: pr-ephemeral-env-controller-proxy-role
 subjects:
 - kind: ServiceAccount
-  name: kubebuilder-controller-manager
-  namespace: kubebuilder-system
----
-# temporarily add binding
-kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: cont-mgr-clusteradmin
-subjects:
-  - kind: ServiceAccount
-    name: kubebuilder-controller-manager
-    namespace: kubebuilder-system
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: cluster-admin
+  name: pr-ephemeral-env-controller-controller-manager
+  namespace: pr-ephemeral-env-controller-system
 ---
 apiVersion: v1
 data:
@@ -386,7 +397,7 @@ data:
       port: 9443
     leaderElection:
       leaderElect: true
-      resourceName: 87e71118.prcontroller.ephemreal.io
+      resourceName: bcbe8346.prcontroller.ephemeralenv.io
     # leaderElectionReleaseOnCancel defines if the leader should step down volume
     # when the Manager ends. This requires the binary to immediately end when the
     # Manager is stopped, otherwise, this setting is unsafe. Setting this significantly
@@ -399,16 +410,16 @@ data:
     # leaderElectionReleaseOnCancel: true
 kind: ConfigMap
 metadata:
-  name: kubebuilder-manager-config
-  namespace: kubebuilder-system
+  name: pr-ephemeral-env-controller-manager-config
+  namespace: pr-ephemeral-env-controller-system
 ---
 apiVersion: v1
 kind: Service
 metadata:
   labels:
     control-plane: controller-manager
-  name: kubebuilder-controller-manager-metrics-service
-  namespace: kubebuilder-system
+  name: pr-ephemeral-env-controller-controller-manager-metrics-service
+  namespace: pr-ephemeral-env-controller-system
 spec:
   ports:
   - name: https
@@ -423,8 +434,8 @@ kind: Deployment
 metadata:
   labels:
     control-plane: controller-manager
-  name: kubebuilder-controller-manager
-  namespace: kubebuilder-system
+  name: pr-ephemeral-env-controller-controller-manager
+  namespace: pr-ephemeral-env-controller-system
 spec:
   replicas: 1
   selector:
@@ -467,7 +478,7 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: ghcr.io/manisbindra/ephemeral-pr-controller:0.1.0
+        image: ghcr.io/manisbindra/pr-ephemeral-env-controller:0.2.0
         livenessProbe:
           httpGet:
             path: /healthz
@@ -493,9 +504,7 @@ spec:
           capabilities:
             drop:
             - ALL
-      imagePullSecrets:
-      - name: ghcrpullscr
       securityContext:
         runAsNonRoot: true
-      serviceAccountName: kubebuilder-controller-manager
+      serviceAccountName: pr-ephemeral-env-controller-controller-manager
       terminationGracePeriodSeconds: 10
