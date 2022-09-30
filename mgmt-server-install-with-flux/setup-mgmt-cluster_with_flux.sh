@@ -85,7 +85,7 @@ kubectl create secret generic tokensecret -n default --from-literal=token=$GITHU
 kubectl create secret generic ghtoken -n flux-system --from-literal=username=${GITHUB_USER} --from-literal=password=$GITHUB_TOKEN
 
 # Create Image pull secret to pull container image
-kubectl create secret docker-registry ghcrpullscr -n pr-ephemeral-env-controller-system --docker-server="ghcr.io" --docker-username=$HELM_OCI_REGISTRY_USER --docker-password=$HELM_OCI_REGISTRY_PASSWORD --docker-email=mani@test.com
+# kubectl create secret docker-registry ghcrpullscr -n pr-ephemeral-env-controller-system --docker-server="ghcr.io" --docker-username=$HELM_OCI_REGISTRY_USER --docker-password=$HELM_OCI_REGISTRY_PASSWORD --docker-email=mani@test.com
 
 # Create CRD to observe APP repository PRs
 kubectl apply -f ephemeral-prcontroller-CR.yaml
