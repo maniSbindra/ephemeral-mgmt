@@ -1,4 +1,6 @@
-# Ephemeral app - Management Repo
+# PR Ephemeral environment creation - Management Repo
 
-This is the Management repository which contains scripts to bootstrap the management Kubernetes cluster, including applying the ArgoCD ApplicationSet (with PR Generator)
- as shown in [ephemeral-app](https://github.com/maniSbindra/ephemeral-app)
+This is the Management repository which contains scripts to bootstrap the management Kubernetes cluster for 2 different configurations
+* Ephemeral Environment Setup using [ArgoCD ApplicationSet (with PR Generator), Crossplane Azure Jet Provider, and Crossplane Helm Provider](./mgmt-server-install/Readme.md)
+* Ephemeral Environment Setup using [Custom Controller, Flux , Crossplane Azure Jet Provider, and Crossplane Helm Provider](./mgmt-server-install-with-flux/Readme.md)
+ 
