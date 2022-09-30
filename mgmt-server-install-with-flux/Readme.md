@@ -29,12 +29,12 @@ The script [setup-mgmt-cluster_with_flux.sh](https://github.com/maniSbindra/ephe
   chmod +x setup-mgmt-cluster_with_flux.sh
   ```
 
-* Set values of environment variables : copy the file .env-template.sh to .env. Then set the values of the variables in the .env file. These variables are:
-  * HELM_OCI_REGISTRY_USER and HELM_OCI_REGISTRY_PASSWORD: This Github token needs to have permissions to read and write github packages
+* Set values of environment variables : copy the file .env-template.sh to .env. Then set the values of the variables in the .env file. These variables (with sample values) are:
+  * HELM_OCI_REGISTRY_USER and HELM_OCI_REGISTRY_PASSWORD: This Github token needs to have permissions to read Helm charts published by the Application Repository (through github workflow in application repository)
   * POSTGRES_DB_PASSWORD: This will be used as the admin password for all ephemeral Postgres SQL Databases (one for each PR) created 
-  * GITHUB_USER & GITHUB_TOKEN: This Github token will be used by argo CD, to observe the app and infrastructure repositories 
-  * GITHUB_APP_REPOSITORY: https://github.com/maniSbindra/ephemeral-app
-  * FLUX_BOOTSTRAP_REPOSITORY: https://github.com/Your-Flux-Bootstrap-Repository
+  * GITHUB_USER & GITHUB_TOKEN: This Github token will be used by the setup script to add a flux source for the infrastructure repository
+  * GITHUB_INFRA_REPOSITORY: https://github.com/maniSbindra/ephemeral-env-infra.git  
+  * FLUX_BOOTSTRAP_REPOSITORY: https://github.com/Your-Flux-Bootstrap-Repository 
 
 * Execute the script: next we execute the script
   
